@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import gsap from 'gsap';
+import * as dat from 'lil-gui';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 export default class Experience {
   constructor() {
@@ -9,6 +11,7 @@ export default class Experience {
     };
 
     this.canvas = document.querySelector('.webgl');
+    this.gltfLoader = new GLTFLoader();
     this.scene = new THREE.Scene();
     this.clock = new THREE.Clock();
 
@@ -23,6 +26,7 @@ export default class Experience {
     });
 
     this.createCamera();
+    this.createLights();
     this.createObjects();
     this.createRenderer();
     this.animate();
@@ -32,6 +36,23 @@ export default class Experience {
       const experience = experiences[i];
       observer.observe(experience);
     }
+  }
+
+  // fonction pour créer les lumières
+  createLights() {
+    const ambientLight = new THREE.AmbientLight('#ffffff', 0.8);
+    this.scene.add(ambientLight);
+
+    this.gui = new dat.GUI();
+
+    const directionalLight = new THREE.DirectionalLight('#ffffff', 4);
+    directionalLight.position.set(1, 2, 5);
+    this.gui.add(directionalLight.position, 'x', -10, 10, 0.01);
+    directionalLight.castShadow = true; // aweille projette de l'ombre
+    directionalLight.shadow.camera.far = 10;
+    directionalLight.shadow.normalBias = 0.027;
+    directionalLight.shadow.bias = -0.004;
+    this.scene.add(directionalLight);
   }
 
   createCamera() {
@@ -50,6 +71,8 @@ export default class Experience {
     });
     this.renderer.setSize(this.sizes.width, this.sizes.height);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.shadowMap.enabled = true; // rend possible les ombres
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.render(this.scene, this.camera);
   }
 
@@ -60,7 +83,25 @@ export default class Experience {
     });
     this.cube = new THREE.Mesh(geometry, material); // on applique la forme et le materiel pour faire un mesh
     this.cube.position.x = 2;
-    this.scene.add(this.cube);
+    // this.scene.add(this.cube);
+
+    // importation du modèle dans la scène
+    this.gltfLoader.load('assets/models/ac/scene.gltf', (gltf) => {
+      this.model = gltf.scene;
+      this.model.scale.set(0.005, 0.005, 0.005);
+      this.model.rotation.x = 1.5;
+      this.gui.add(this.model.rotation, 'x', -10, 10, 0.01);
+
+      //shadow
+      this.model.traverse((child) => {
+        if (child.isMesh && child.material.isMeshStandardMaterial) {
+          child.castShadow = true;
+          child.receiveShadow = true;
+        }
+      });
+
+      this.scene.add(this.model);
+    });
   }
 
   resize() {
@@ -92,12 +133,29 @@ export default class Experience {
     for (let i = 0; i < entries.length; i++) {
       const entry = entries[i];
       const target = entry.target;
-      if (entry.isIntersecting) {
-        const posX = (Math.random() - 0.5) * 4;
-        gsap.to(this.cube.position, {
+      if (entry.isIntersecting && this.model) {
+        //position model
+        gsap.to(this.model.position, {
           duration: 1,
           ease: 'Power2.inOut',
-          x: posX,
+          x: target.dataset.p,
+        });
+
+        // rotation model
+        gsap.to(this.model.rotation, {
+          duration: 1,
+          ease: 'Power2.inOut',
+          x: target.dataset.rX,
+          y: target.dataset.rY,
+          z: target.dataset.rZ,
+        });
+
+        // camera position
+        const cameraZ = 'cZ' in target.dataset ? target.dataset.cZ : 8;
+        gsap.to(this.camera.position, {
+          duration: 1,
+          ease: 'Power2.inOut',
+          z: cameraZ,
         });
       }
     }
