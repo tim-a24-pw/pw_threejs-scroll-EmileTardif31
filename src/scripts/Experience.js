@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import gsap from 'gsap';
-import * as dat from 'lil-gui';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import * as dat from 'lil-gui'; // pour le ui customizable
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'; // pour supporter les modèles gltf
 
 export default class Experience {
   constructor() {
@@ -87,8 +87,8 @@ export default class Experience {
 
     // importation du modèle dans la scène
     this.gltfLoader.load('assets/models/ac/scene.gltf', (gltf) => {
-      this.model = gltf.scene;
-      this.model.scale.set(0.005, 0.005, 0.005);
+      this.model = gltf.scene; // gltf.scene c'est le modèle, faire un console.log(gltf); pour comprendre
+      this.model.scale.set(0.005, 0.005, 0.005); //pour agrandir ou rapetisser le modèle
       this.model.rotation.x = 1.5;
       this.gui.add(this.model.rotation, 'x', -10, 10, 0.01);
 
